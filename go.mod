@@ -1,4 +1,4 @@
-module github.com/thavel/apidep
+module github.com/tiburon-vegetariano/apidep
 
 go 1.26.2
 

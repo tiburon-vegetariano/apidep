@@ -7,9 +7,9 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/thavel/apidep/pkg/file"
-	"github.com/thavel/apidep/pkg/logger"
-	"github.com/thavel/apidep/pkg/provider"
+	"github.com/tiburon-vegetariano/apidep/pkg/file"
+	"github.com/tiburon-vegetariano/apidep/pkg/logger"
+	"github.com/tiburon-vegetariano/apidep/pkg/provider"
 )
 
 func main() {

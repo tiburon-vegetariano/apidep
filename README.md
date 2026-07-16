@@ -23,7 +23,7 @@ Downloads the latest pre-built binary for your OS/arch and installs to `/usr/loc
 ### Go
 
 ```shell
-go install github.com/thavel/apidep@latest
+go install github.com/tiburon-vegetariano/apidep@latest
 ```
 
 ### Docker

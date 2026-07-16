@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/thavel/apidep/pkg/file"
+	"github.com/tiburon-vegetariano/apidep/pkg/file"
 )
 
 type FS struct{}

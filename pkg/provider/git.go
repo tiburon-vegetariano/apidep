@@ -15,7 +15,7 @@ import (
 	"github.com/go-git/go-git/v6/plumbing/transport/ssh"
 	"github.com/go-git/go-git/v6/storage/memory"
 
-	"github.com/thavel/apidep/pkg/file"
+	"github.com/tiburon-vegetariano/apidep/pkg/file"
 )
 
 type Git struct{}

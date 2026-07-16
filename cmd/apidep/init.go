@@ -7,7 +7,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/thavel/apidep/pkg/file"
+	"github.com/tiburon-vegetariano/apidep/pkg/file"
 )
 
 func initCommand() *cli.Command {
