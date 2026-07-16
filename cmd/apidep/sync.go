@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/thavel/apidep/pkg/file"
-	"github.com/thavel/apidep/pkg/provider"
 )
 
 const (
@@ -25,13 +24,11 @@ type ResolvedDep struct {
 	Source file.Source
 }
 
-var (
-	mux       sync.Mutex
-	providers = []file.Provider{
-		&provider.FS{},
-		&provider.Git{},
-	}
-	Sync = &cli.Command{
+func syncCommand(providers []file.Provider) *cli.Command {
+	var (
+		mux sync.Mutex
+	)
+	return &cli.Command{
 		Name:  "sync",
 		Usage: "Synchronize api dependencies",
 		Flags: []cli.Flag{
@@ -59,73 +56,75 @@ var (
 				Usage:   "path to the lock file",
 			},
 		},
-		Action: syncAction,
+		Action: syncAction(providers, &mux),
 	}
-)
-
-func syncAction(ctx context.Context, cmd *cli.Command) error {
-	depPath := cmd.String("file")
-	lockPath := cmd.String("lock")
-	concurrency := cmd.Int("concurrency")
-	noValidate := cmd.Bool("no-validate")
-
-	apiDep, err := file.ReadDep(depPath)
-	if err != nil {
-		return err
-	}
-
-	deps, err := resolve(apiDep, concurrency)
-	if err != nil {
-		return err
-	}
-	rootOutput := apiDep.Output
-
-	var (
-		wg       sync.WaitGroup
-		lockDeps []file.DepLock
-		lockMux  sync.Mutex
-	)
-	sem := make(chan struct{}, concurrency)
-	for _, rd := range deps {
-		wg.Add(1)
-		sem <- struct{}{}
-
-		go func() {
-			defer wg.Done()
-			defer func() { <-sem }()
-
-			slog.Info("fetching", "source", rd.Dep.Source)
-
-			depLock, err := syncDep(rd, rootOutput, noValidate)
-			if err != nil {
-				slog.Error("syncing", "source", rd.Dep.Source, "err", err)
-				return
-			}
-			lockMux.Lock()
-			defer lockMux.Unlock()
-			lockDeps = append(lockDeps, *depLock)
-		}()
-	}
-	wg.Wait()
-
-	if len(lockDeps) > 0 {
-		lock, err := file.ReadLock(lockPath)
-		if err != nil {
-			return fmt.Errorf("load lock file: %w", err)
-		}
-		for _, entry := range lockDeps {
-			lock.Upsert(entry)
-		}
-		if err := file.WriteLock(lockPath, lock); err != nil {
-			return fmt.Errorf("save lock file: %w", err)
-		}
-		slog.Info("lock file updated", "path", lockPath)
-	}
-
-	return nil
 }
 
-func syncDep(rd ResolvedDep, root string, noValidate bool) (*file.DepLock, error) {
+func syncAction(providers []file.Provider, mux *sync.Mutex) cli.ActionFunc {
+	return func(ctx context.Context, cmd *cli.Command) error {
+		depPath := cmd.String("file")
+		lockPath := cmd.String("lock")
+		concurrency := cmd.Int("concurrency")
+		noValidate := cmd.Bool("no-validate")
+
+		apiDep, err := file.ReadDep(depPath)
+		if err != nil {
+			return err
+		}
+
+		deps, err := resolve(apiDep, concurrency, providers)
+		if err != nil {
+			return err
+		}
+		rootOutput := apiDep.Output
+
+		var (
+			wg       sync.WaitGroup
+			lockDeps []file.DepLock
+			lockMux  sync.Mutex
+		)
+		sem := make(chan struct{}, concurrency)
+		for _, rd := range deps {
+			wg.Add(1)
+			sem <- struct{}{}
+
+			go func() {
+				defer wg.Done()
+				defer func() { <-sem }()
+
+				slog.Info("fetching", "source", rd.Dep.Source)
+
+				depLock, err := syncDep(rd, rootOutput, noValidate, mux)
+				if err != nil {
+					slog.Error("syncing", "source", rd.Dep.Source, "err", err)
+					return
+				}
+				lockMux.Lock()
+				defer lockMux.Unlock()
+				lockDeps = append(lockDeps, *depLock)
+			}()
+		}
+		wg.Wait()
+
+		if len(lockDeps) > 0 {
+			lock, err := file.ReadLock(lockPath)
+			if err != nil {
+				return fmt.Errorf("load lock file: %w", err)
+			}
+			for _, entry := range lockDeps {
+				lock.Upsert(entry)
+			}
+			if err := file.WriteLock(lockPath, lock); err != nil {
+				return fmt.Errorf("save lock file: %w", err)
+			}
+			slog.Info("lock file updated", "path", lockPath)
+		}
+
+		return nil
+	}
+}
+
+func syncDep(rd ResolvedDep, root string, noValidate bool, mux *sync.Mutex) (*file.DepLock, error) {
 	dep := &rd.Dep
 	source := rd.Source
 
@@ -136,7 +135,7 @@ func syncDep(rd ResolvedDep, root string, noValidate bool) (*file.DepLock, error
 			return nil, fmt.Errorf("error fetching %s: %w", ref.Path, err)
 		}
 		dest := file.Output(ref.Path, root, dep.Output, ref.Output, defaultOutput)
-		status, err := file.WriteDep(&mux, dest, content)
+		status, err := file.WriteDep(mux, dest, content)
 		if err != nil {
 			return nil, fmt.Errorf("error writing output: %w", err)
 		}
@@ -163,7 +162,7 @@ func syncDep(rd ResolvedDep, root string, noValidate bool) (*file.DepLock, error
 	}, nil
 }
 
-func resolve(apiDep *file.ApiDep, concurrency int) ([]ResolvedDep, error) {
+func resolve(apiDep *file.ApiDep, concurrency int, providers []file.Provider) ([]ResolvedDep, error) {
 	resolved := make([]struct {
 		dep ResolvedDep
 		err error

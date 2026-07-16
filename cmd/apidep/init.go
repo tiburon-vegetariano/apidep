@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -10,30 +10,32 @@ import (
 	"github.com/thavel/apidep/pkg/file"
 )
 
-var Init = &cli.Command{
-	Name:  "init",
-	Usage: "Generate an api.ref.yml by scanning api files",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "output",
-			Aliases: []string{"o"},
-			Value:   defaultApiref,
-			Usage:   "output file path",
+func initCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "init",
+		Usage: "Generate an api.ref.yml by scanning api files",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "output",
+				Aliases: []string{"o"},
+				Value:   defaultApiref,
+				Usage:   "output file path",
+			},
+			&cli.StringFlag{
+				Name:    "workdir",
+				Aliases: []string{"w"},
+				Value:   ".",
+				Usage:   "workdir to scan",
+			},
+			&cli.IntFlag{
+				Name:    "depth",
+				Aliases: []string{"d"},
+				Value:   0,
+				Usage:   "maximum scan depth",
+			},
 		},
-		&cli.StringFlag{
-			Name:    "workdir",
-			Aliases: []string{"w"},
-			Value:   ".",
-			Usage:   "workdir to scan",
-		},
-		&cli.IntFlag{
-			Name:    "depth",
-			Aliases: []string{"d"},
-			Value:   0,
-			Usage:   "maximum scan depth",
-		},
-	},
-	Action: initAction,
+		Action: initAction,
+	}
 }
 
 func initAction(ctx context.Context, cmd *cli.Command) error {
