@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -12,18 +12,20 @@ import (
 	"github.com/thavel/apidep/pkg/file"
 )
 
-var Validate = &cli.Command{
-	Name:  "validate",
-	Usage: "Validate api refs files described in api.ref.yml",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "ref",
-			Aliases: []string{"r"},
-			Value:   defaultApiref,
-			Usage:   "path to the api.ref.yml file",
+func validateCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "validate",
+		Usage: "Validate api refs files described in api.ref.yml",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "ref",
+				Aliases: []string{"r"},
+				Value:   defaultApiref,
+				Usage:   "path to the api.ref.yml file",
+			},
 		},
-	},
-	Action: validateAction,
+		Action: validateAction,
+	}
 }
 
 func validateAction(ctx context.Context, cmd *cli.Command) error {

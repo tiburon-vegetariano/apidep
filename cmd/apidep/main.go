@@ -7,8 +7,9 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/thavel/apidep/cmd"
+	"github.com/thavel/apidep/pkg/file"
 	"github.com/thavel/apidep/pkg/logger"
+	"github.com/thavel/apidep/pkg/provider"
 )
 
 func main() {
@@ -18,14 +19,19 @@ func main() {
 		}),
 	))
 
+	providers := []file.Provider{
+		&provider.FS{},
+		&provider.Git{},
+	}
+
 	app := &cli.Command{
 		Name:  "apidep",
 		Usage: "API dependency manager",
 		Commands: []*cli.Command{
-			cmd.Init,
-			cmd.Sync,
-			cmd.Validate,
-			cmd.CI,
+			initCommand(),
+			syncCommand(providers),
+			validateCommand(),
+			ciCommand(providers),
 		},
 	}
 	if err := app.Run(context.Background(), os.Args); err != nil {
