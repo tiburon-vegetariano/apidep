@@ -38,6 +38,13 @@ type Ref struct {
 	Output string `yaml:"output,omitempty"` // optional
 }
 
+func (r Ref) Inputs(src Source) ([]string, error) {
+	if src == nil {
+		return []string{r.Path}, nil
+	}
+	return src.Glob(r.Path)
+}
+
 func ReadRef(filePath string) (*ApiRef, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {

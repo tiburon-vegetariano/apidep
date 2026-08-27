@@ -36,6 +36,11 @@ func (s *fsSource) Fetch(filePath string) ([]byte, error) {
 	return content, nil
 }
 
+func (s *fsSource) Glob(pattern string) ([]string, error) {
+	full := filepath.Join(s.base, pattern)
+	return filepath.Glob(full)
+}
+
 func (s *fsSource) Commit() string {
 	return ""
 }
